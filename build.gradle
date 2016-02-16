@@ -1,0 +1,38 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+repositories {
+    jcenter()
+}
+
+dependencies { }
+
+mainClassName = "com.naleid.Example"
+
+task setupRun(type:Exec) {
+  onlyIf { !System.getProperty('external.ip') }
+
+  workingDir './'
+  commandLine 'curl', '-s', 'icanhazip.com'
+  standardOutput = new ByteArrayOutputStream()
+
+  // must define it before using it
+  ext {
+    externalIp = null
+  }
+
+  // after the curl command has run and exited, we have a populated standard out, grab the value from that
+  doLast {
+    externalIp = standardOutput.toString().trim()
+  }
+}
+
+run {
+  dependsOn setupRun
+
+  // must be inside a doFirst, without it, this gets evaluated before the value is populated by the task
+  doFirst {
+    systemProperties['external.ip'] = setupRun.externalIp ?: System.getProperty('external.ip')
+  }
+}
+
